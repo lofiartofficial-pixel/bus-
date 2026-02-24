@@ -1,0 +1,67 @@
+/* සියලුම වර්ණ සහ විචල්‍යයන් */
+:root {
+  --primary: #C0392B;
+  --primary-dark: #8B0000;
+  --accent: #E8A020;
+  --bg-cream: #FAFAF8;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --white: #FFFFFF;
+  --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+}
+
+/* Scrollbar එක ලස්සන කිරීම */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-cream);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+/* Navigation Hover Effects */
+.nav-link {
+  position: relative;
+  transition: 0.3s;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0; height: 2px;
+  bottom: -5px; left: 0;
+  background-color: var(--accent);
+  transition: 0.3s;
+}
+
+.nav-link:hover::after { width: 100%; }
+
+/* Route Card එක තවත් දියුණු කිරීම */
+.route-card {
+  border: 1px solid rgba(0,0,0,0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.route-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow);
+}
+
+/* Search Box Focus Effect */
+.search-field:focus-within {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in.visible {
+  animation: fadeIn 0.8s ease forwards;
+}
