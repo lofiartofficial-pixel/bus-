@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#B91C1C">
+<title>BusLanka — ශ්‍රී ලංකාව බසයෙන් සොයන්න</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --red: #B91C1C;
+    --red-light: #EF4444;
+    --red-bg: #FEF2F2;
+    --gold: #D97706;
+    --gold-light: #FEF3C7;
+    --green: #15803D;
+    --green-bg: #F0FDF4;
+    --blue: #1D4ED8;
+    --blue-bg: #EFF6FF;
+    --surface: #FFFFFF;
+    --surface-2: #F8F8F8;
+    --surface-3: #F1F1F1;
+    --border: #E8E8E8;
+    --text-1: #111111;
+    --text-2: #555555;
+    --text-3: #999999;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Sinhala', sans-serif;
+    background: var(--surface-2);
+    color: var(--text-1);
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  /* ── APP SHELL ── */
+  .app-shell {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    background: var(--surface-2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 60px rgba(0,0,0,0.15);
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    background: var(--red);
+    height: calc(44px + var(--safe-top));
+    padding-top: var(--safe-top);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 20px;
+    padding-right: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+  .sb-time { font-size: 15px; font-weight: 700; color: white; }
+  .sb-icons { display: flex; align-items: center; gap: 6px; }
+  .sb-icon { color: white; font-size: 13px; }
+
+  /* ── SCROLLABLE CONTENT ── */
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding-bottom: calc(70px + var(--safe-bottom));
+  }
+  .scroll-content::-webkit-scrollbar { display: none; }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ═══════════════════════════════
+     HOME PANEL
+  ═══════════════════════════════ */
+  .home-hero {
+    background: linear-gradient(175deg, #7F1D1D 0%, #B91C1C 40%, #DC2626 75%, #EF4444 100%);
+    padding: 20px 20px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .home-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 30px; left: -40px;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .hero-top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; position: relative; z-index: 2;
+  }
+  .hero-greeting { }
+  .hero-greeting-sub { font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 500; }
+  .hero-greeting-main { font-size: 20px; font-weight: 800; color: white; margin-top: 2px; }
+  .hero-greeting-main span { color: #FCD34D; }
+
+  .hero-avatar {
+    width: 44px; height: 44px; background: rgba(255,255,255,0.15);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  /* Search Card */
+  .search-card {
+    background: white;
+    border-radius: 22px 22px 0 0;
+    padding: 22px 20px 28px;
+    position: relative; z-index: 2;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.08);
+  }
+  .sc-title { font-size: 13px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+
+  .route-picker {
+    background: var(--surface-2);
+    border-radius: 16px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 14px;
+    border: 1.5px solid var(--border);
+  }
+  .rp-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 12px;
+    background: white; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .rp-row:active { background: var(--surface-3); }
+  .rp-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .rp-dot.from { background: var(--red); }
+  .rp-dot.to { background: var(--text-1); }
+  .rp-connector {
+    width: 1px; height: 20px; background: var(--border);
+    margin-left: 20px;
+  }
+  .rp-label { font-size: 11px; color: var(--text-3); font-weight: 600; }
+  .rp-value { font-size: 15px; font-weight: 700; color: var(--text-1); margin-top: 1px; }
+
+  .rp-swap-btn {
+    position: absolute;
+    right: 42px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px; height: 32px;
+    background: var(--red-bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer;
+    border: 1.5px solid var(--border);
+    transition: transform 0.3s;
+  }
+  .rp-swap-btn:active { transform: translateY(-50%) rotate(180deg); }
+
+  .search-meta { display: flex; gap: 8px; margin-bottom: 16px; }
+  .meta-chip {
+    flex: 1; display: flex; align-items: center; gap: 6px;
+    padding: 10px 12px; background: var(--surface-2);
+    border-radius: 12px; border: 1.5px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text-1);
+    cursor: pointer;
+  }
+  .meta-chip .chip-icon { font-size: 15px; }
+
+  .search-btn-main {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--red), #DC2626);
+    border: none; border-radius: 16px;
+    color: white; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 6px 20px rgba(185,28,28,0.35);
+    transition: all 0.2s;
+  }
+  .search-btn-main:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(185,28,28,0.3); }
+
+  /* Quick Routes */
+  .quick-section { padding: 20px 20px 0; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sh-title { font-size: 16px; font-weight: 800; color: var(--text-1); }
+  .sh-see-all { font-size: 13px; font-weight: 600; color: var(--red); cursor: pointer; }
+
+  .quick-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .quick-scroll::-webkit-scrollbar { display: none; }
+
+  .quick-card {
+    flex-shrink: 0; width: 160px;
+    background: white; border-radius: 16px;
+    padding: 14px; border: 1.5px solid var(--border);
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .quick-card:active { transform: scale(0.97); }
+  .qc-stripe { height: 4px; border-radius: 2px; margin-bottom: 12px; }
+  .qc-route { font-size: 13px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; line-height: 1.3; }
+  .qc-meta { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .qc-price { font-size: 15px; font-weight: 800; color: var(--green); margin-top: 10px; }
+
+  /* Destinations */
+  .dest-section { padding: 20px 20px 0; }
+  .dest-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .dest-scroll::-webkit-scrollbar { display: none; }
+
+  .dest-card-app {
+    flex-shrink: 0; width: 140px;
+    border-radius: 18px; overflow: hidden;
+    cursor: pointer; position: relative;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .dest-card-app:active { transform: scale(0.96); }
+  .dca-visual {
+    height: 120px; display: flex; align-items: center; justify-content: center;
+    font-size: 52px; position: relative;
+  }
+  .dca-body {
+    padding: 10px 12px 12px;
+    background: white;
+  }
+  .dca-name { font-size: 12px; font-weight: 700; color: var(--text-1); }
+  .dca-fare { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* Tips Banner */
+  .tips-banner { margin: 20px 20px 0; }
+  .tb-inner {
+    background: linear-gradient(135deg, #1C1917, #292524);
+    border-radius: 20px; padding: 18px 16px;
+    display: flex; gap: 14px; align-items: center;
+    cursor: pointer; transition: transform 0.2s;
+  }
+  .tb-inner:active { transform: scale(0.98); }
+  .tb-icon { font-size: 36px; flex-shrink: 0; }
+  .tb-text { }
+  .tb-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.8px; }
+  .tb-title { font-size: 15px; font-weight: 800; color: white; margin-top: 2px; line-height: 1.3; }
+  .tb-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+  .tb-arrow { margin-left: auto; color: rgba(255,255,255,0.3); font-size: 18px; flex-shrink: 0; }
+
+  /* Emergency strip */
+  .emer-strip { margin: 16px 20px 0; display: flex; gap: 8px; }
+  .es-card {
+    flex: 1; background: white; border-radius: 14px; padding: 12px 10px;
+    border: 1.5px solid var(--border); text-align: center; cursor: pointer;
+    transition: all 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .es-card:active { transform: scale(0.97); }
+  .es-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .es-num { font-size: 18px; font-weight: 800; color: var(--text-1); }
+  .es-name { font-size: 10px; color: var(--text-3); font-weight: 600; margin-top: 2px; }
+
+  /* ═══════════════════════════════
+     ROUTES PANEL
+  ═══════════════════════════════ */
+  .panel-header {
+    background: white;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .ph-title { font-size: 22px; font-weight: 800; color: var(--text-1); }
+  .ph-sub { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+
+  .filter-row { display: flex; gap: 8px; padding: 14px 20px; overflow-x: auto; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0; padding: 8px 16px; border-radius: 100px;
+    border: 1.5px solid var(--border); background: white;
+    font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-chip.active {
+    background: var(--red); border-color: var(--red); color: white;
+  }
+
+  .routes-list { padding: 0 20px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+
+  .route-card-app {
+    background: white; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    overflow: hidden; cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    transition: all 0.2s;
+  }
+  .route-card-app:active { transform: scale(0.99); }
+
+  .rca-head { padding: 16px 16px 12px; display: flex; align-items: flex-start; justify-content: space-between; }
+  .rca-route { }
+  .rca-cities { font-size: 16px; font-weight: 800; color: var(--text-1); }
+  .rca-number { font-size: 11px; color: var(--text-3); font-weight: 600; margin-top: 2px; }
+  .rca-badge {
+    padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700;
+  }
+
+  .rca-stops-row {
+    padding: 0 16px 14px;
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  }
+  .rca-stop-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .rca-stop-label { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .rca-stop-arrow { font-size: 10px; color: var(--border); }
+
+  .rca-footer {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid var(--surface-3);
+  }
+  .rca-stat {
+    padding: 12px 14px; text-align: center;
+    border-right: 1px solid var(--surface-3);
+  }
+  .rca-stat:last-child { border-right: none; }
+  .rca-stat-label { font-size: 10px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .rca-stat-val { font-size: 15px; font-weight: 800; color: var(--text-1); margin-top: 3px; }
+  .rca-stat-val.green { color: var(--green); }
+
+  /* ═══════════════════════════════
+     PLANNER PANEL
+  ═══════════════════════════════ */
+  .planner-hero {
+    background: linear-gradient(135deg, #111827, #1F2937);
+    padding: 28px 20px 24px;
+    position: relative; overflow: hidden;
+  }
+  .planner-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 80% 50%, rgba(217,119,6,0.2) 0%, transparent 60%);
+  }
+  .ph-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(217,119,6,0.15); border: 1px solid rgba(217,119,6,0.3);
+    padding: 5px 12px; border-radius: 100px; margin-bottom: 14px;
+  }
+  .ph-badge span { font-size: 11px; font-weight: 700; color: #FCD34D; text-transform: uppercase; letter-spacing: 0.5px; }
+  .planner-hero h2 { font-size: 26px; font-weight: 800; color: white; line-height: 1.2; position: relative; z-index: 1; }
+  .planner-hero p { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 8px; line-height: 1.6; position: relative; z-index: 1; }
+
+  .planner-form { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  .form-field { }
+  .fl-label { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+  .fl-select {
+    width: 100%; padding: 14px 16px;
+    background: white; border: 1.5px solid var(--border);
+    border-radius: 14px; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px; font-weight: 600; color: var(--text-1);
+    outline: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23999' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    cursor: pointer;
+  }
+
+  .vibe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .vibe-btn {
+    padding: 14px 12px; border-radius: 14px;
+    border: 1.5px solid var(--border); background: white;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px; font-weight: 600; color: var(--text-2);
+    cursor: pointer; text-align: center; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .vibe-btn .vb-icon { font-size: 24px; }
+  .vibe-btn.selected {
+    border-color: var(--red); background: var(--red-bg); color: var(--red);
+  }
+
+  .gen-btn {
+    width: 100%; padding: 17px;
+    background: linear-gradient(135deg, #D97706, #B45309);
+    border: none; border-radius: 16px;
+    color: white; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 6px 20px rgba(217,119,6,0.35);
+    transition: all 0.2s;
+  }
+  .gen-btn:active { transform: scale(0.98); }
+
+  /* Plan Result */
+  .plan-output { padding: 0 20px 20px; display: none; }
+  .plan-output.show { display: block; }
+
+  .po-header {
+    background: linear-gradient(135deg, #7F1D1D, #B91C1C);
+    border-radius: 18px; padding: 18px;
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .poh-icon { font-size: 36px; }
+  .poh-title { font-size: 17px; font-weight: 800; color: white; }
+  .poh-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  .po-day { margin-bottom: 14px; }
+  .pod-header {
+    background: var(--gold-light); border-left: 3px solid var(--gold);
+    padding: 8px 12px; border-radius: 0 10px 10px 0;
+    font-size: 12px; font-weight: 700; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .pod-item {
+    display: flex; gap: 12px; padding: 8px 12px;
+    background: white; border-radius: 10px; margin-bottom: 4px;
+    border: 1px solid var(--border);
+  }
+  .poi-time { font-size: 10px; color: var(--text-3); font-weight: 700; min-width: 48px; padding-top: 2px; }
+  .poi-text { font-size: 13px; color: var(--text-1); line-height: 1.5; font-weight: 500; }
+
+  /* ═══════════════════════════════
+     BUDGET PANEL
+  ═══════════════════════════════ */
+  .budget-hero {
+    background: linear-gradient(135deg, #14532D, #15803D);
+    padding: 28px 20px 24px;
+  }
+  .budget-hero h2 { font-size: 26px; font-weight: 800; color: white; }
+  .budget-hero p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 8px; }
+
+  .budget-toggle-app {
+    display: flex; gap: 6px;
+    padding: 14px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .bta-btn {
+    flex: 1; padding: 11px;
+    background: var(--surface-2); border: 1.5px solid var(--border);
+    border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px; font-weight: 700; color: var(--text-2); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bta-btn.active { background: var(--green); border-color: var(--green); color: white; }
+
+  .budget-cards { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+  .budget-row {
+    background: white; border-radius: 16px;
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    transition: all 0.15s; cursor: pointer;
+  }
+  .budget-row:active { background: var(--surface-2); }
+  .br-icon-wrap {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .br-info { flex: 1; }
+  .br-cat { font-size: 14px; font-weight: 700; color: var(--text-1); }
+  .br-detail { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .br-amount { text-align: right; }
+  .br-day { font-size: 12px; color: var(--text-3); font-weight: 600; }
+  .br-total { font-size: 15px; font-weight: 800; color: var(--text-1); margin-top: 2px; }
+
+  .budget-total-card {
+    margin: 0 20px 20px;
+    background: linear-gradient(135deg, #14532D, #166534);
+    border-radius: 18px; padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .btc-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.8px; }
+  .btc-amount { font-size: 28px; font-weight: 800; color: white; margin-top: 4px; }
+  .btc-currency { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .btc-days { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); }
+
+  /* Money tips */
+  .money-tips { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .money-tip {
+    background: white; border-radius: 16px; padding: 14px 16px;
+    border: 1.5px solid var(--border); display: flex; gap: 12px; align-items: flex-start;
+  }
+  .mt-icon { font-size: 26px; flex-shrink: 0; }
+  .mt-title { font-size: 13px; font-weight: 700; color: var(--text-1); margin-bottom: 3px; }
+  .mt-text { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+
+  /* ═══════════════════════════════
+     TIPS PANEL
+  ═══════════════════════════════ */
+  .tips-hero {
+    background: linear-gradient(135deg, #1E1B4B, #312E81);
+    padding: 28px 20px 24px;
+  }
+  .tips-hero h2 { font-size: 26px; font-weight: 800; color: white; }
+  .tips-hero p { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 8px; }
+
+  .tips-list { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+  .tip-row {
+    background: white; border-radius: 18px; padding: 16px;
+    border: 1.5px solid var(--border);
+    display: flex; gap: 14px; align-items: flex-start;
+    transition: all 0.2s; cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+  }
+  .tip-row:active { transform: scale(0.99); background: var(--surface-2); }
+  .tr-icon-wrap {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .tr-content { flex: 1; }
+  .tr-title { font-size: 14px; font-weight: 800; color: var(--text-1); margin-bottom: 5px; }
+  .tr-text { font-size: 12px; color: var(--text-2); line-height: 1.65; }
+
+  /* ═══════════════════════════════
+     BOTTOM NAV
+  ═══════════════════════════════ */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-bottom);
+    z-index: 200;
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 10px 0 12px; cursor: pointer; transition: all 0.2s;
+    position: relative;
+  }
+  .bn-item:active .bn-icon { transform: scale(0.88); }
+  .bn-icon { font-size: 22px; line-height: 1; margin-bottom: 3px; transition: transform 0.2s; }
+  .bn-label { font-size: 10px; font-weight: 600; color: var(--text-3); transition: color 0.2s; }
+  .bn-item.active .bn-label { color: var(--red); font-weight: 700; }
+  .bn-active-dot {
+    width: 4px; height: 4px; border-radius: 50%; background: var(--red);
+    position: absolute; top: 7px;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .bn-item.active .bn-active-dot { opacity: 1; }
+
+  /* ═══════════════════════════════
+     SELECT MODALS
+  ═══════════════════════════════ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 300; display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    width: 100%; max-width: 430px; margin: 0 auto;
+    background: white; border-radius: 24px 24px 0 0;
+    padding: 0 0 calc(20px + var(--safe-bottom));
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 80vh; overflow-y: auto;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+  .ms-handle {
+    width: 36px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 12px auto 0;
+  }
+  .ms-title { font-size: 16px; font-weight: 800; padding: 16px 20px 12px; color: var(--text-1); }
+  .ms-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid var(--surface-3);
+  }
+  .ms-option:active { background: var(--surface-2); }
+  .ms-option:last-child { border-bottom: none; }
+  .mso-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .mso-name { font-size: 15px; font-weight: 600; color: var(--text-1); }
+  .mso-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .mso-check { margin-left: auto; color: var(--red); font-size: 18px; }
+
+  /* ═══════════════════════════════
+     ANIMATIONS & MICRO
+  ═══════════════════════════════ */
+  .fade-slide { opacity: 0; transform: translateY(16px); transition: opacity 0.4s, transform 0.4s; }
+  .fade-slide.in { opacity: 1; transform: none; }
+
+  .pulse-dot {
+    display: inline-block; width: 8px; height: 8px; background: var(--green);
+    border-radius: 50%; animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(21,128,61,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(21,128,61,0); }
+  }
+
+  /* Desktop view: center the app */
+  @media (min-width: 431px) {
+    body { background: #F0F0F0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .app-shell { height: 900px; min-height: unset; border-radius: 44px; overflow: hidden; }
+    .bottom-nav { border-radius: 0 0 44px 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="sb-time" id="clock">9:41</span>
+    <div class="sb-icons">
+      <span class="sb-icon">📶</span>
+      <span class="sb-icon">🔋</span>
+    </div>
+  </div>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="scroll-content" id="scrollContent">
+
+    <!-- ═══ HOME PANEL ═══ -->
+    <div class="panel active" id="panel-home">
+
+      <div class="home-hero">
+        <div class="hero-top-bar">
+          <div class="hero-greeting">
+            <div class="hero-greeting-sub">🇱🇰 ශ්‍රී ලංකාව සොයන්න</div>
+            <div class="hero-greeting-main">Bus<span>Lanka</span></div>
+          </div>
+          <div class="hero-avatar">🚌</div>
+        </div>
+      </div>
+
+      <div class="search-card">
+        <div class="sc-title">ගමනාන්තය සොයන්න</div>
+
+        <div class="route-picker" style="position:relative;">
+          <div class="rp-row" onclick="openModal('from')">
+            <div class="rp-dot from"></div>
+            <div>
+              <div class="rp-label">ආරම්භය</div>
+              <div class="rp-value" id="fromCity">කොළඹ</div>
+            </div>
+          </div>
+          <div class="rp-connector"></div>
+          <div class="rp-row" onclick="openModal('to')">
+            <div class="rp-dot to"></div>
+            <div>
+              <div class="rp-label">ගමනාන්තය</div>
+              <div class="rp-value" id="toCity">ගාල්ල</div>
+            </div>
+          </div>
+          <div class="rp-swap-btn" onclick="swapCities()">⇅</div>
+        </div>
+
+        <div class="search-meta">
+          <div class="meta-chip">
+            <span class="chip-icon">📅</span>
+            <span id="dateLabel">අද</span>
+          </div>
+          <div class="meta-chip">
+            <span class="chip-icon">👥</span>
+            <span>1 දෙනා</span>
+          </div>
+          <div class="meta-chip">
+            <span class="chip-icon">🚌</span>
+            <span>සියල්ල</span>
+          </div>
+        </div>
+
+        <button class="search-btn-main" onclick="doSearch()">
+          🔍 බස් සොයන්න
+        </button>
+      </div>
+
+      <!-- Quick Routes -->
+      <div class="quick-section">
+        <div class="section-header">
+          <div class="sh-title">ජනප්‍රිය මාර්ග</div>
+          <div class="sh-see-all" onclick="switchTo('routes')">සියල්ල බලන්න →</div>
+        </div>
+        <div class="quick-scroll">
+          <div class="quick-card" onclick="switchTo('routes')">
+            <div class="qc-stripe" style="background:#B91C1C"></div>
+            <div class="qc-route">කොළඹ → කන්ඩි</div>
+            <div class="qc-meta">~3 uur · Bus 592</div>
+            <div class="qc-price">රු. 160</div>
+          </div>
+          <div class="quick-card" onclick="switchTo('routes')">
+            <div class="qc-stripe" style="background:#15803D"></div>
+            <div class="qc-route">කොළඹ → ගාල්ල</div>
+            <div class="qc-meta">~2.5 uur · Bus 2/3</div>
+            <div class="qc-price">රු. 130</div>
+          </div>
+          <div class="quick-card" onclick="switchTo('routes')">
+            <div class="qc-stripe" style="background:#E65100"></div>
+            <div class="qc-route">කන්ඩි → එල්ල</div>
+            <div class="qc-meta">~4 uur · Bus 99</div>
+            <div class="qc-price">රු. 200</div>
+          </div>
+          <div class="quick-card" onclick="switchTo('routes')">
+            <div class="qc-stripe" style="background:#1D4ED8"></div>
+            <div class="qc-route">කොළඹ → යාපනය</div>
+            <div class="qc-meta">~7 uur · SLTB Exp</div>
+            <div class="qc-price">රු. 450</div>
+          </div>
+          <div class="quick-card" onclick="switchTo('routes')">
+            <div class="qc-stripe" style="background:#6A1B9A"></div>
+            <div class="qc-route">කොළඹ → ත්‍රිකුණාමලය</div>
+            <div class="qc-meta">~6 uur · Bus 49</div>
+            <div class="qc-price">රු. 350</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Destinations -->
+      <div class="dest-section" style="margin-top:20px;">
+        <div class="section-header">
+          <div class="sh-title">ගමනාන්ත</div>
+          <div class="sh-see-all" onclick="switchTo('tips')">ඉඟි →</div>
+        </div>
+        <div class="dest-scroll">
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#FFF3E0,#FFE0B2)">🦷</div>
+            <div class="dca-body"><div class="dca-name">කන්ඩි</div><div class="dca-fare">රු. 160</div></div>
+          </div>
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#E8F5E9,#C8E6C9)">🦁</div>
+            <div class="dca-body"><div class="dca-name">සීගිරිය</div><div class="dca-fare">රු. 180</div></div>
+          </div>
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#E3F2FD,#BBDEFB)">🌿</div>
+            <div class="dca-body"><div class="dca-name">එල්ල</div><div class="dca-fare">රු. 200</div></div>
+          </div>
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#FFFDE7,#FFF9C4)">⛵</div>
+            <div class="dca-body"><div class="dca-name">ගාල්ල</div><div class="dca-fare">රු. 130</div></div>
+          </div>
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#F3E5F5,#E1BEE7)">🌅</div>
+            <div class="dca-body"><div class="dca-name">ත්‍රිකුණාමලය</div><div class="dca-fare">රු. 350</div></div>
+          </div>
+          <div class="dest-card-app">
+            <div class="dca-visual" style="background:linear-gradient(135deg,#E8F5E9,#A5D6A7)">🍵</div>
+            <div class="dca-body"><div class="dca-name">නුවර එළිය</div><div class="dca-fare">රු. 220</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trip Planner Banner -->
+      <div class="tips-banner">
+        <div class="tb-inner" onclick="switchTo('planner')">
+          <div class="tb-icon">🗺️</div>
+          <div class="tb-text">
+            <div class="tb-label">AI Trip Builder</div>
+            <div class="tb-title">ඔබේ සිහිනයේ ගමන සැලසුම් කරන්න</div>
+            <div class="tb-sub">3, 5, 7 හෝ 10 දින · සියලු ශෛලීන්</div>
+          </div>
+          <div class="tb-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- Emergency -->
+      <div class="emer-strip">
+        <div class="es-card">
+          <span class="es-icon">🚑</span>
+          <div class="es-num">1990</div>
+          <div class="es-name">ගිලන්රථ</div>
+        </div>
+        <div class="es-card">
+          <span class="es-icon">👮</span>
+          <div class="es-num">119</div>
+          <div class="es-name">පොලිසිය</div>
+        </div>
+        <div class="es-card">
+          <span class="es-icon">🚌</span>
+          <div class="es-num">1955</div>
+          <div class="es-name">SLTB</div>
+        </div>
+        <div class="es-card">
+          <span class="es-icon">🏥</span>
+          <div class="es-num">1912</div>
+          <div class="es-name">සංචාරක</div>
+        </div>
+      </div>
+
+      <div style="height: 20px;"></div>
+    </div>
+
+    <!-- ═══ ROUTES PANEL ═══ -->
+    <div class="panel" id="panel-routes">
+      <div class="panel-header">
+        <div class="ph-title">🗺️ බස් මාර්ග</div>
+        <div class="ph-sub">ශ්‍රී ලංකාවේ ප්‍රධාන බස් රේඛා</div>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="filterRoutes('all', this)">සියල්ල</div>
+        <div class="filter-chip" onclick="filterRoutes('west', this)">🏙️ බස්නාහිර</div>
+        <div class="filter-chip" onclick="filterRoutes('central', this)">⛰️ මධ්‍යම</div>
+        <div class="filter-chip" onclick="filterRoutes('south', this)">🌴 දකුණ</div>
+        <div class="filter-chip" onclick="filterRoutes('north', this)">🏛️ උතුර</div>
+        <div class="filter-chip" onclick="filterRoutes('east', this)">🌊 නැගෙනහිර</div>
+      </div>
+
+      <div class="routes-list" id="routesList">
+        <div class="route-card-app" data-region="west central">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">කොළඹ → කන්ඩි</div>
+              <div class="rca-number">Bus 592 / 594</div>
+            </div>
+            <span class="rca-badge" style="background:#FEF3C7;color:#92400E">🏔️ මධ්‍යම</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#B91C1C"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කොළඹ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">කෑගල්ල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">මාවනැල්ල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#B91C1C"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කන්ඩි</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~3 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">30 min</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 160</div></div>
+          </div>
+        </div>
+
+        <div class="route-card-app" data-region="west south">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">කොළඹ → ගාල්ල</div>
+              <div class="rca-number">Bus 2 / 3</div>
+            </div>
+            <span class="rca-badge" style="background:#D1FAE5;color:#065F46">🌴 දකුණ</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#15803D"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කොළඹ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">මොරටුව</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">කළුතර</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">හික්කඩුව</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#15803D"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">ගාල්ල</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~2.5 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">15 min</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 130</div></div>
+          </div>
+        </div>
+
+        <div class="route-card-app" data-region="central">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">කන්ඩි → එල්ල</div>
+              <div class="rca-number">Bus 98 / 99</div>
+            </div>
+            <span class="rca-badge" style="background:#FEE2E2;color:#991B1B">⛰️ කඳු රට</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#E65100"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කන්ඩි</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">නුවර එළිය</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">වෙලිමඩ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#E65100"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">එල්ල</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~4 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">1 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 200</div></div>
+          </div>
+        </div>
+
+        <div class="route-card-app" data-region="north">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">කොළඹ → යාපනය</div>
+              <div class="rca-number">SLTB Express</div>
+            </div>
+            <span class="rca-badge" style="background:#EFF6FF;color:#1D4ED8">🏛️ උතුර</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#1D4ED8"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කොළඹ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">කුරුණෑගල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">අනුරාධපුර</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">වව්නියාව</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#1D4ED8"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">යාපනය</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~7-8 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">දිනකට 4</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 450</div></div>
+          </div>
+        </div>
+
+        <div class="route-card-app" data-region="east">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">කොළඹ → ත්‍රිකුණාමලය</div>
+              <div class="rca-number">Bus 49 / 50</div>
+            </div>
+            <span class="rca-badge" style="background:#F5F3FF;color:#5B21B6">🌊 නැගෙනහිර</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#6A1B9A"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">කොළඹ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">දඹුල්ල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">හබරණ</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#6A1B9A"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">ත්‍රිකුණාමලය</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~5-6 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">2 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 350</div></div>
+          </div>
+        </div>
+
+        <div class="route-card-app" data-region="south">
+          <div class="rca-head">
+            <div class="rca-route">
+              <div class="rca-cities">ගාල්ල → මාතර → තිස්සමහාරාම</div>
+              <div class="rca-number">Bus 32 / 33</div>
+            </div>
+            <span class="rca-badge" style="background:#FFFBEB;color:#92400E">🐘 දකුණ Loop</span>
+          </div>
+          <div class="rca-stops-row">
+            <div class="rca-stop-dot" style="background:#D97706"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">ගාල්ල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">මාතර</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#ccc"></div>
+            <span class="rca-stop-label">තංගල්ල</span>
+            <span class="rca-stop-arrow">›</span>
+            <div class="rca-stop-dot" style="background:#D97706"></div>
+            <span class="rca-stop-label" style="font-weight:700;color:#111">තිස්සමහාරාම</span>
+          </div>
+          <div class="rca-footer">
+            <div class="rca-stat"><div class="rca-stat-label">කාලය</div><div class="rca-stat-val">~3 uur</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">Frequency</div><div class="rca-stat-val">30 min</div></div>
+            <div class="rca-stat"><div class="rca-stat-label">ගාස්තු</div><div class="rca-stat-val green">රු. 180</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PLANNER PANEL ═══ -->
+    <div class="panel" id="panel-planner">
+      <div class="planner-hero">
+        <div class="ph-badge"><span>📅 AI Trip Builder</span></div>
+        <h2>ඔබේ ගමන සැලසුම් කරන්න</h2>
+        <p>ඔබේ ශෛලිය පවසන්න — සම්පූර්ණ බස් ගමනාන්ත සැලැස්ම ලෙස සකස් කරමු.</p>
+      </div>
+
+      <div class="planner-form">
+        <div class="form-field">
+          <label class="fl-label">ආරම්භ නගරය</label>
+          <select class="fl-select" id="pStartCity">
+            <option value="colombo">කොළඹ</option>
+            <option value="kandy">කන්ඩි</option>
+            <option value="galle">ගාල්ල</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="fl-label">දින ගණන</label>
+          <select class="fl-select" id="pDays">
+            <option value="3">3 දිනක්</option>
+            <option value="5">5 දිනක්</option>
+            <option value="7">7 දිනක්</option>
+            <option value="10">10 දිනක්</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="fl-label">ගමනේ ශෛලිය</label>
+          <div class="vibe-grid">
+            <button class="vibe-btn selected" data-type="culture" onclick="selectVibe(this)">
+              <span class="vb-icon">🏛️</span> සංස්කෘතිය
+            </button>
+            <button class="vibe-btn" data-type="nature" onclick="selectVibe(this)">
+              <span class="vb-icon">🌿</span> ස්වභාවය
+            </button>
+            <button class="vibe-btn" data-type="beach" onclick="selectVibe(this)">
+              <span class="vb-icon">🏖️</span> වෙරළ
+            </button>
+            <button class="vibe-btn" data-type="mixed" onclick="selectVibe(this)">
+              <span class="vb-icon">✨</span> සියල්ල
+            </button>
+          </div>
+        </div>
+
+        <button class="gen-btn" onclick="generatePlanApp()">
+          🗺️ ගමනාන්ත සැලැස්ම සාදන්න
+        </button>
+      </div>
+
+      <div class="plan-output" id="planOutputApp"></div>
+    </div>
+
+    <!-- ═══ BUDGET PANEL ═══ -->
+    <div class="panel" id="panel-budget">
+      <div class="budget-hero">
+        <h2>💰 අයවැය සැලැස්ම</h2>
+        <p>7-දින ශ්‍රී ලංකා බස් ගමනක් සඳහා ඇස්තමේන්තු වියදම්</p>
+      </div>
+
+      <div class="budget-toggle-app">
+        <button class="bta-btn active" onclick="setBudgetApp('budget', this)">🎒 Backpacker</button>
+        <button class="bta-btn" onclick="setBudgetApp('mid', this)">🏨 Mid-Range</button>
+      </div>
+
+      <div class="budget-cards">
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#FEE2E2">🚌</div>
+          <div class="br-info"><div class="br-cat">බස් ගමන</div><div class="br-detail">සියලු රේඛා ඇතුළත්ව</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 215" data-mid="රු. 430">රු. 215</div><div class="br-total budget-tot" data-budget="රු. 1,500" data-mid="රු. 3,000">රු. 1,500</div></div>
+        </div>
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#EFF6FF">🏨</div>
+          <div class="br-info"><div class="br-cat">නවාතැන</div><div class="br-detail">Guesthouse / Hostel</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 1,500" data-mid="රු. 4,000">රු. 1,500</div><div class="br-total budget-tot" data-budget="රු. 10,500" data-mid="රු. 28,000">රු. 10,500</div></div>
+        </div>
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#F0FDF4">🍛</div>
+          <div class="br-info"><div class="br-cat">ආහාර (3 වේල)</div><div class="br-detail">ස්ථානීය ආහාරාගාර</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 750" data-mid="රු. 2,000">රු. 750</div><div class="br-total budget-tot" data-budget="රු. 5,250" data-mid="රු. 14,000">රු. 5,250</div></div>
+        </div>
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#FFFBEB">🎫</div>
+          <div class="br-info"><div class="br-cat">ප්‍රවේශ පත්‍ර</div><div class="br-detail">කෞතුකාගාර / සිටිලස්</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 285" data-mid="රු. 715">රු. 285</div><div class="br-total budget-tot" data-budget="රු. 2,000" data-mid="රු. 5,000">රු. 2,000</div></div>
+        </div>
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#FAF5FF">🛺</div>
+          <div class="br-info"><div class="br-cat">ත්‍රීරෝද රථ</div><div class="br-detail">ස්ථානීය ගමන්</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 145" data-mid="රු. 360">රු. 145</div><div class="br-total budget-tot" data-budget="රු. 1,000" data-mid="රු. 2,500">රු. 1,000</div></div>
+        </div>
+        <div class="budget-row">
+          <div class="br-icon-wrap" style="background:#FFF7ED">🛍️</div>
+          <div class="br-info"><div class="br-cat">සාප්පු & වෙනත්</div><div class="br-detail">සිත්කලු, සිවිල් භාණ්ඩ</div></div>
+          <div class="br-amount"><div class="br-day budget-day" data-budget="රු. 145" data-mid="රු. 430">රු. 145</div><div class="br-total budget-tot" data-budget="රු. 1,000" data-mid="රු. 3,000">රු. 1,000</div></div>
+        </div>
+      </div>
+
+      <div class="budget-total-card">
+        <div>
+          <div class="btc-label">සම්පූර්ණ වියදම (7 දිනක්)</div>
+          <div class="btc-amount budget-grand" data-budget="රු. 21,250" data-mid="රු. 55,500">රු. 21,250</div>
+          <div class="btc-currency">LKR · දළ ඇස්තමේන්තුව</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:40px">💚</div>
+          <div class="btc-days">7 දිනක් ✓</div>
+        </div>
+      </div>
+
+      <div style="padding: 0 20px 4px;"><div class="section-header"><div class="sh-title">💡 ඉතිරි කිරීමේ ඉඟි</div></div></div>
+      <div class="money-tips">
+        <div class="money-tip"><div class="mt-icon">🍛</div><div><div class="mt-title">ස්ථානීය කඩ අනුභව කරන්න</div><div class="mt-text">රු. 150–250 ට සම්පූර්ණ බත් කෑමක්. සංචාරක ස්ථානයේ නම් රු. 800+. ස්ථානීය රස හොඳයි!</div></div></div>
+        <div class="money-tip"><div class="mt-icon">🏠</div><div><div class="mt-title">Guesthouses & Homestays</div><div class="mt-text">රු. 1,000–1,500 ට කාමරයක්, බොහෝ විට උදෑසන ආහාරය ඇතුළත්ව. Booking.com හොඳ.</div></div></div>
+        <div class="money-tip"><div class="mt-icon">🎟️</div><div><div class="mt-title">Cultural Triangle Ticket</div><div class="mt-text">Sigiriya, Polonnaruwa සහ Anuradhapura ට ඒකාබද්ධ ටිකට් — වෙන් ගත් ගාස්තුවට වඩා ගොඩක් ලාබ.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ TIPS PANEL ═══ -->
+    <div class="panel" id="panel-tips">
+      <div class="tips-hero">
+        <h2>💡 සංචාරක ඉඟි</h2>
+        <p>ශ්‍රී ලංකා බස් ගමනක් සුමට හා අමතක නොවන ලෙස කිරීමේ ඉඟි.</p>
+      </div>
+
+      <div class="tips-list">
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#FEF3C7">⏰</div>
+          <div class="tr-content">
+            <div class="tr-title">උදෑසන ගමන් කරන්න</div>
+            <div class="tr-text">කොළඹ බස් 6–9am අතර ගෙඩිය. 10am ට පසු පිටත් වෙන්න. Peak hour ට පෙර 30 min ස්ටෑන්ඩ් එකේ ඉන්න.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#FEE2E2">💺</div>
+          <div class="tr-content">
+            <div class="tr-title">ඉදිරිපස ආසනය ගන්න</div>
+            <div class="tr-text">ඉදිරිපස ආසනය — වඩා හොඳ දසුන්, වාතාශ්‍රය, රිය ඇදීමේ ස්ථාවරත්වය. ස්ටෑන්ඩ් එකට ඉක්මනින් එන්න.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#D1FAE5">🎒</div>
+          <div class="tr-content">
+            <div class="tr-title">ලාඝව ලෙස ගමන් කරන්න</div>
+            <div class="tr-text">බස් වල ගබඩා කොටස් නැහැ. 30L daypack ඇදුරු. ජංගම දුරකථන හා අත්පසෙහි zip pocket.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#DBEAFE">💧</div>
+          <div class="tr-content">
+            <div class="tr-title">ජලය හා ආහාර රැගෙන යන්න</div>
+            <div class="tr-text">Bus stop vendor ගාස්තු 2–3x. ගමන් ආරම්භයේදී Bottle fill. 2+ uur ගමන් සඳහා biscuits රැගෙන යන්න.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#F5F3FF">📱</div>
+          <div class="tr-content">
+            <div class="tr-title">Offline Maps Download කරන්න</div>
+            <div class="tr-text">Google Maps offline හොඳින් ක්‍රියා කරයි. Mobitel/Dialog SIM රු. 1,000 ට — ගෙවල් ප්‍රදේශ coverage.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#FFFBEB">💵</div>
+          <div class="tr-content">
+            <div class="tr-title">Cash සෑම විටම රැගෙන යන්න</div>
+            <div class="tr-text">බස් ගාස්තු, street food Cash only. රු. 20, 50, 100 කුඩා Notes. Commercial Bank / People's Bank හෝ ATM.</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#EFF6FF">🌧️</div>
+          <div class="tr-content">
+            <div class="tr-title">Umbrella රැගෙන යන්න</div>
+            <div class="tr-text">SW Monsoon: May–Sep (බස්නාහිර & දකුණ). NE Monsoon: Oct–Jan (නැගෙනහිර & උතුර). වැස්ස හදිසියේ ඇද හැලේ!</div>
+          </div>
+        </div>
+        <div class="tip-row">
+          <div class="tr-icon-wrap" style="background:#FEF3C7">🗣️</div>
+          <div class="tr-content">
+            <div class="tr-title">සිංහල කතා කරන්න</div>
+            <div class="tr-text">"ගාල්ල යන්න බස් ඒක කොහෙද?" — ස්ථානීය ජනතාව ගොඩාක් කැමතියි. ඔවුන් ඔබට සතුටින් help කරාවී!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="bn-item active" onclick="switchTo('home', this)" id="nav-home">
+      <div class="bn-active-dot"></div>
+      <div class="bn-icon">🏠</div>
+      <div class="bn-label">Home</div>
+    </div>
+    <div class="bn-item" onclick="switchTo('routes', this)" id="nav-routes">
+      <div class="bn-active-dot"></div>
+      <div class="bn-icon">🗺️</div>
+      <div class="bn-label">Routes</div>
+    </div>
+    <div class="bn-item" onclick="switchTo('planner', this)" id="nav-planner">
+      <div class="bn-active-dot"></div>
+      <div class="bn-icon">📅</div>
+      <div class="bn-label">Plan</div>
+    </div>
+    <div class="bn-item" onclick="switchTo('budget', this)" id="nav-budget">
+      <div class="bn-active-dot"></div>
+      <div class="bn-icon">💰</div>
+      <div class="bn-label">Budget</div>
+    </div>
+    <div class="bn-item" onclick="switchTo('tips', this)" id="nav-tips">
+      <div class="bn-active-dot"></div>
+      <div class="bn-icon">💡</div>
+      <div class="bn-label">Tips</div>
+    </div>
+  </nav>
+</div>
+
+<!-- CITY PICKER MODAL -->
+<div class="modal-overlay" id="cityModal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="ms-handle"></div>
+    <div class="ms-title" id="modalTitle">ආරම්භ නගරය</div>
+    <div id="cityList"></div>
+  </div>
+</div>
+
+<script>
+// Clock
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  document.getElementById('clock').textContent = h + ':' + m;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// Today label
+const days = ['ඉරිදා','සඳුදා','අඟහරු','බදාදා','බ්‍රහස්','සිකුරාදා','සෙනසුරාදා'];
+document.getElementById('dateLabel').textContent = days[new Date().getDay()];
+
+// ── PANEL SWITCHING ──
+let currentPanel = 'home';
+function switchTo(name, navEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const nav = navEl || document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  document.getElementById('scrollContent').scrollTop = 0;
+  currentPanel = name;
+}
+
+// ── CITY MODAL ──
+const cities = [
+  { name: 'කොළඹ', en: 'Colombo', icon: '🏙️', desc: 'Western Province' },
+  { name: 'කන්ඩි', en: 'Kandy', icon: '⛰️', desc: 'Central Province' },
+  { name: 'ගාල්ල', en: 'Galle', icon: '⛵', desc: 'Southern Province' },
+  { name: 'යාපනය', en: 'Jaffna', icon: '🏛️', desc: 'Northern Province' },
+  { name: 'ත්‍රිකුණාමලය', en: 'Trincomalee', icon: '🌊', desc: 'Eastern Province' },
+  { name: 'නුවර එළිය', en: 'Nuwara Eliya', icon: '🍵', desc: 'Central Province' },
+  { name: 'එල්ල', en: 'Ella', icon: '🌿', desc: 'Uva Province' },
+  { name: 'මාතර', en: 'Matara', icon: '🏖️', desc: 'Southern Province' },
+  { name: 'අනුරාධපුර', en: 'Anuradhapura', icon: '🕌', desc: 'North Central Province' },
+  { name: 'දඹුල්ල', en: 'Dambulla', icon: '🗿', desc: 'Central Province' },
+];
+
+let modalTarget = 'from';
+let selectedFrom = 'කොළඹ';
+let selectedTo = 'ගාල්ල';
+
+function openModal(target) {
+  modalTarget = target;
+  document.getElementById('modalTitle').textContent = target === 'from' ? '⬆️ ආරම්භ නගරය' : '⬇️ ගමනාන්ත නගරය';
+  const current = target === 'from' ? selectedFrom : selectedTo;
+  document.getElementById('cityList').innerHTML = cities.map(c => `
+    <div class="ms-option" onclick="selectCity('${c.name}')">
+      <div class="mso-icon">${c.icon}</div>
+      <div><div class="mso-name">${c.name}</div><div class="mso-sub">${c.en} — ${c.desc}</div></div>
+      ${c.name === current ? '<div class="mso-check">✓</div>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('cityModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('cityModal')) {
+    document.getElementById('cityModal').classList.remove('open');
+  }
+}
+
+function selectCity(name) {
+  if (modalTarget === 'from') {
+    selectedFrom = name;
+    document.getElementById('fromCity').textContent = name;
+  } else {
+    selectedTo = name;
+    document.getElementById('toCity').textContent = name;
+  }
+  document.getElementById('cityModal').classList.remove('open');
+}
+
+function swapCities() {
+  const tmp = selectedFrom;
+  selectedFrom = selectedTo;
+  selectedTo = tmp;
+  document.getElementById('fromCity').textContent = selectedFrom;
+  document.getElementById('toCity').textContent = selectedTo;
+}
+
+function doSearch() {
+  switchTo('routes', document.getElementById('nav-routes'));
+}
+
+// ── ROUTE FILTER ──
+function filterRoutes(region, el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.route-card-app').forEach(card => {
+    if (region === 'all' || card.dataset.region.includes(region)) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// ── VIBE SELECTION ──
+let selectedVibe = 'culture';
+function selectVibe(btn) {
+  document.querySelectorAll('.vibe-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedVibe = btn.dataset.type;
+}
+
+// ── PLAN DATA ──
+const plansApp = {
+  culture: [
+    {day:"දිනය 1 — කොළඹ → අනුරාධපුර",items:[{t:"6:00",a:"Bastian Terminal → Bus to Anuradhapura (රු. 250)"},{t:"10:00",a:"Ruwanwelisaya Stupa & Sri Maha Bodhi ගස (3 uur)"},{t:"14:00",a:"Mihintale ස්ථානීය බස් (රු. 30)"},{t:"සවස",a:"Guesthouse — රු. ~1,500"}]},
+    {day:"දිනය 2 — සීගිරිය & දඹුල්ල",items:[{t:"7:00",a:"Dambulla Bus (රු. 80) → ස්ථානීය Bus සීගිරිය"},{t:"9:00",a:"Sigiriya Rock ගල් කන්ද (ටිකට් රු. 4,500)"},{t:"15:00",a:"Dambulla Cave Temple (රු. 1,500)"},{t:"සවස",a:"Habarana Guesthouse"}]},
+    {day:"දිනය 3 — කන්ඩි",items:[{t:"6:00",a:"Bus to Kandy (රු. 120)"},{t:"10:00",a:"Temple of the Tooth Relic"},{t:"13:00",a:"Kandy Lake & ස්ථානීය දිවා ආහාරය"},{t:"15:00",a:"Peradeniya Botanical Garden (රු. 500)"}]},
+  ],
+  nature: [
+    {day:"දිනය 1 — කොළඹ → නුවර එළිය",items:[{t:"6:00",a:"Colombo → Nuwara Eliya Bus (රු. 220)"},{t:"11:00",a:"Pedro Tea Factory tour & tasting"},{t:"14:00",a:"Gregory Lake ඇවිදීම"},{t:"සවස",a:"Mountain Cool Guesthouse"}]},
+    {day:"දිනය 2 — එල්ල",items:[{t:"8:00",a:"Nuwara Eliya → Ella Bus (රු. 80)"},{t:"11:00",a:"Nine Arch Bridge — 11am ට හොඳම ඡායාරූප"},{t:"14:00",a:"Little Adam's Peak ලිප (Free, ~1.5 hrs)"},{t:"සවස",a:"Ella Sunset Ridge"}]},
+    {day:"දිනය 3 — Yala Safari",items:[{t:"5:30",a:"Yala National Park Jeep Safari — Leopard, Elephant! (රු. 5,000+)"},{t:"12:00",a:"Return to Tissa → Bus to Galle (රු. 180)"},{t:"සවස",a:"Galle Fort Guesthouse"}]},
+  ],
+  beach: [
+    {day:"දිනය 1 — කොළඹ → ගාල්ල",items:[{t:"7:00",a:"Bus 2/3 Colombo → Galle (රු. 130)"},{t:"9:30",a:"Galle Fort ඇවිදීම, Boutique Cafes"},{t:"13:00",a:"Unawatuna Beach Tuk-tuk (රු. 100)"},{t:"සවස",a:"Fort Rooftop Sundowner"}]},
+    {day:"දිනය 2 — හික්කඩුව + මිරිස්ස",items:[{t:"9:00",a:"Hikkaduwa Bus (රු. 50) — Coral Reef Snorkeling"},{t:"13:00",a:"Mirissa Bus (රු. 80)"},{t:"15:00",a:"Mirissa Beach + Coconut Bars"},{t:"සවස",a:"Mirissa — Whale Watching Book!"}]},
+    {day:"දිනය 3 — තංගල්ල",items:[{t:"9:00",a:"Tangalle Bus (රු. 80) — Quiet Beautiful Beach"},{t:"14:00",a:"Sea Turtle Nesting Beach (Oct–Mar)"},{t:"සවස",a:"Tangalle Guesthouse"}]},
+  ],
+  mixed: [
+    {day:"දිනය 1 — කොළඹ → කන්ඩි",items:[{t:"7:00",a:"Bus 592/594 Colombo → Kandy (රු. 160)"},{t:"10:00",a:"Dalada Maligawa — Tooth Relic"},{t:"15:00",a:"Peradeniya Botanical Garden"},{t:"සවස",a:"Kandy Cultural Show (රු. 1,000)"}]},
+    {day:"දිනය 2 — නුවර එළිය",items:[{t:"8:00",a:"Kandy → Nuwara Eliya Bus (රු. 80)"},{t:"11:00",a:"Pedro Tea Estate Tour"},{t:"14:00",a:"Gregory Lake, Victoria Park"},{t:"සවස",a:"Colonial Guesthouse — Fire & Strawberries"}]},
+    {day:"දිනය 3 — එල්ල",items:[{t:"8:00",a:"Nuwara Eliya → Ella Bus (රු. 80)"},{t:"11:00",a:"Nine Arch Bridge Photography"},{t:"14:00",a:"Little Adam's Peak Hike"},{t:"සවස",a:"Ella Night"}]},
+    {day:"දිනය 4-5 — Yala + ගාල්ල",items:[{t:"7:00",a:"Ella → Tissamaharama (රු. 150)"},{t:"5:30",a:"NEXT DAY — Yala Safari! 🐆"},{t:"8:00",a:"Tissa → Galle Buses (රු. 180)"},{t:"සවස",a:"Galle Fort Dinner"}]},
+  ]
+};
+
+function generatePlanApp() {
+  const days = parseInt(document.getElementById('pDays').value);
+  const output = document.getElementById('planOutputApp');
+  output.classList.add('show');
+
+  const plan = plansApp[selectedVibe] || plansApp.mixed;
+  const sliced = plan.slice(0, Math.min(days, plan.length));
+  const labels = {culture:'සංස්කෘතික',nature:'ස්වභාව',beach:'වෙරළ',mixed:'මිශ්‍ර'};
+
+  let html = `
+    <div class="po-header">
+      <div class="poh-icon">🗺️</div>
+      <div>
+        <div class="poh-title">${days}-දින ${labels[selectedVibe]} ගමනාන්ත සැලැස්ම</div>
+        <div class="poh-sub">සම්පූර්ණ බසින් 🚌 · ඇ. රු. ${days * 3500} Budget</div>
+      </div>
+    </div>
+  `;
+
+  sliced.forEach(d => {
+    html += `<div class="po-day"><div class="pod-header">📅 ${d.day}</div>`;
+    d.items.forEach(i => {
+      html += `<div class="pod-item"><span class="poi-time">${i.t}</span><span class="poi-text">${i.a}</span></div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `<div style="background:#FEF3C7;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:12px;color:#92400E;line-height:1.7"><strong>💡 ඉඟිය:</strong> SLTB <strong>1955</strong> ට Call කර timings confirm කරන්න!</div>`;
+  output.innerHTML = html;
+  output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── BUDGET TOGGLE ──
+function setBudgetApp(type, btn) {
+  document.querySelectorAll('.bta-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.budget-day').forEach(el => el.textContent = el.dataset[type]);
+  document.querySelectorAll('.budget-tot').forEach(el => el.textContent = el.dataset[type]);
+  document.querySelectorAll('.budget-grand').forEach(el => el.textContent = el.dataset[type]);
+}
+</script>
+</body>
+</html>
